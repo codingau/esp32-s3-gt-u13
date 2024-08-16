@@ -17,8 +17,8 @@
   /*
   * WIFI 热点配置。
   */
-#define APP_WIFI_SSID                   "Free WiFi"
-#define APP_WIFI_PASSWORD               "12345678"
+#define APP_WIFI_SSID                   "ldv"
+#define APP_WIFI_PASSWORD               "Yxxxy123!"
 
   /*
   * GPIO 输出针脚。
