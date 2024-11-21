@@ -14,6 +14,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "driver/uart.h"
+#include "driver/gpio.h"
 #include "mqtt_client.h"
 
 #include "app_config.h"
@@ -46,12 +47,18 @@ static void app_deamon_network_task(void* param) {
         if (app_status == 1) {
             uint32_t cur_ts = esp_log_timestamp();
             uint32_t mqtt_last_ts = atomic_load(&app_mqtt_last_ts);
-            if (cur_ts - mqtt_last_ts > 10000) {// 大于 10 秒。
+            if (cur_ts - mqtt_last_ts > 10000) {// 最后一次 mqtt 提交数据时间，大于 10 秒。
 
                 esp_err_t ping_start_ret = app_ping_start();
                 if (ping_start_ret != ESP_OK) {
-                    ESP_LOGE(TAG, "------ PING 函数执行结果：失败！立即执行：esp_restart()");
-                    esp_restart();
+                    vTaskDelay(pdMS_TO_TICKS(10000));// 等待 10 秒，减少 PING 次数。
+                    int level = gpio_get_level(APP_GPIO_NUM_BLE);
+                    if (level == 1) {
+                        ESP_LOGE(TAG, "------ PING 函数执行结果：失败！蓝牙开关状态：打开，暂不重启。");
+                    } else {
+                        ESP_LOGE(TAG, "------ PING 函数执行结果：失败！执行：esp_restart()");
+                        esp_restart();
+                    }
                 }
                 int ping_ret = 0;
                 for (int i = 0; i < 11; i++) {
@@ -64,13 +71,17 @@ static void app_deamon_network_task(void* param) {
                         ping_ret = -1;
                     }
                 }
+                vTaskDelay(pdMS_TO_TICKS(10000));// 等待 10 秒，减少 PING 次数。
                 if (ping_ret == -1) {// 断网状态，直接检测信号。
-                    ESP_LOGE(TAG, "------ PING 函数执行结果：超时！10 秒后执行：esp_restart()");
-                    vTaskDelay(pdMS_TO_TICKS(10000));// 等待 10 秒，减少 PING 次数。
-                    esp_restart();
+                    int level = gpio_get_level(APP_GPIO_NUM_BLE);
+                    if (level == 1) {
+                        ESP_LOGE(TAG, "------ PING 函数执行结果：超时！蓝牙开关状态：打开，暂不重启。");
+                    } else {
+                        ESP_LOGE(TAG, "------ PING 函数执行结果：超时！执行：esp_restart()");
+                        esp_restart();
+                    }
                 } else {
                     ESP_LOGI(TAG, "------ PING 函数执行结果：正常。返回 time 值：%d。", ping_ret);
-                    vTaskDelay(pdMS_TO_TICKS(10000));// 等待 10 秒，减少 PING 次数。
                 }
             }
         }
@@ -96,8 +107,13 @@ static void app_deamon_loop_task(void* param) {
             esp_restart();
         }
         if (cur_ts - loop_last_ts > 60000) {// 大于 60 秒。
-            ESP_LOGE(TAG, "------ app_main_loop_task() 执行超时！！！立即执行：esp_restart()");
-            esp_restart();
+            int level = gpio_get_level(APP_GPIO_NUM_BLE);
+            if (level == 1) {
+                ESP_LOGE(TAG, "------ app_main_loop_task() 执行超时！！！蓝牙开关状态：打开，暂不重启。");
+            } else {
+                ESP_LOGE(TAG, "------ app_main_loop_task() 执行超时！！！立即执行：esp_restart()");
+                esp_restart();
+            }
         }
 
         vTaskDelay(pdMS_TO_TICKS(30000));// 每 30 秒执行一次。
@@ -110,7 +126,7 @@ static void app_deamon_loop_task(void* param) {
  * @return
  */
 esp_err_t app_deamon_init(void) {
-    xTaskCreate(app_deamon_loop_task, "app_dm_loop_task", 2048, NULL, 1, NULL);// 主循环任务守护任务，优先级 1。
-    xTaskCreate(app_deamon_network_task, "app_dm_network_task", 3072, NULL, 2, NULL);// 网络状态守护任务，优先级 2。
+    xTaskCreate(app_deamon_loop_task, "app_dm_loop_task", 4096, NULL, 1, NULL);// 主循环任务守护任务，优先级 1。
+    xTaskCreate(app_deamon_network_task, "app_dm_network_task", 4096, NULL, 2, NULL);// 网络状态守护任务，优先级 2。
     return ESP_OK;
 }

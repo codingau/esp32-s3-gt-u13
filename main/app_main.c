@@ -150,7 +150,7 @@ void app_main(void) {
         ESP_LOGI(TAG, "------ 初始化 LED：OK。");
     }
 
-    // 初始化 SD，并且创建日志文件。放在 GNSS 之后，是为了等待 SNTP 服务同步时间。过早创建日志文件，获取不到时间。
+    // 初始化 SD，并且创建日志文件。
     esp_err_t sd_ret = app_sd_init();
     if (sd_ret != ESP_OK) {// 如果 SD 卡初始化失败，闪灯但不停止工作。
         ESP_LOGE(TAG, "------ 初始化 SD 卡：失败！");

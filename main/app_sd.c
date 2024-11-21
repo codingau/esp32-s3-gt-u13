@@ -446,7 +446,7 @@ esp_err_t app_sd_init(void) {
     slot_config.d0 = APP_SD_DATA;
 
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
-        .format_if_mount_failed = false,    // 挂载失败格式化。
+        .format_if_mount_failed = true,     // 挂载失败格式化。
         .max_files = 10,                    // 最多打开文件数。
         .allocation_unit_size = 16 * 1024   // 格式化单元大小。
     };

@@ -118,6 +118,6 @@ esp_err_t app_ble_init(void) {
     }
     ble_hs_cfg.sync_cb = app_ble_gap_discovery;
     nimble_port_freertos_init(app_ble_host_task);
-    xTaskCreate(app_ble_leave_task, "app_ble_leave_task", 2048, NULL, 10, NULL);// 蓝牙钥匙检测 LEAVE 任务。
+    xTaskCreate(app_ble_leave_task, "app_ble_leave_task", 4096, NULL, 10, NULL);// 蓝牙钥匙检测 LEAVE 任务。
     return ESP_OK;
 }
